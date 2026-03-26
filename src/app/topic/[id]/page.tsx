@@ -1,17 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { ArrowLeft, Sparkles, FileText, Lightbulb, Clock, Link2, Tag } from 'lucide-react';
+import Link from 'next/link';
 import { newsArticles } from '@/data/newsData';
-import { NewsItem, ConceptDirection } from '@/types';
-import { Sparkles, Clock, Bookmark, Share2, MessageSquare, FileText, Lightbulb } from 'lucide-react';
 
 export default function TopicPage() {
   const { id } = useParams<{ id: string }>();
-  const [selectedDirection, setSelectedDirection] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [news, setNews] = useState<any>(null);
+  const [isAdminNews, setIsAdminNews] = useState(false);
 
-  if (!id) {
+  useEffect(() => {
+    if (!id) return;
+
+    // 首先查找是否是管理员添加的新闻
+    const savedRecords = localStorage.getItem('lens-news-admin-records');
+    if (savedRecords) {
+      const records = JSON.parse(savedRecords);
+      const adminNews = records.find((record: any) => record.id === id);
+      if (adminNews) {
+        setNews(adminNews);
+        setIsAdminNews(true);
+        return;
+      }
+    }
+
+    // 否则查找默认新闻
+    const defaultNews = newsArticles.find((item) => item.id === id);
+    if (defaultNews) {
+      setNews(defaultNews);
+      setIsAdminNews(false);
+    }
+  }, [id]);
+
+  if (!id || !news) {
     return (
       <div className="min-h-screen bg-lens-cream text-lens-dark flex items-center justify-center">
         <div className="text-center">
@@ -21,216 +44,155 @@ export default function TopicPage() {
     );
   }
 
-  const news = newsArticles.find(item => item.id === id);
-
-  if (!news) {
-    return (
-      <div className="min-h-screen bg-lens-cream text-lens-dark flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">新闻不存在</h1>
-          <p className="text-gray-600">请检查链接是否正确</p>
-        </div>
-      </div>
-    );
-  }
-
-  const handleDirectionClick = (directionId: string) => {
-    setSelectedDirection(directionId);
-    setIsExpanded(true);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const selectedDirectionData = selectedDirection 
-    ? news.conceptDirections.find(direction => direction.id === selectedDirection)
-    : null;
-
   return (
-    <div className="min-h-screen bg-lens-cream text-lens-dark">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* 左侧主内容区 */}
-          <div className="lg:w-2/3">
-            {/* 新闻头部 */}
-            <div className="mb-8">
-              <span className="inline-block px-3 py-1 bg-lens-gold/10 text-lens-gold text-sm font-medium rounded-full mb-4">
-                {news.category}
+    <main className="min-h-screen bg-lens-cream">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Back Button */}
+        <Link
+          href="/home"
+          className="inline-flex items-center text-sm text-gray-600 hover:text-lens-gold mb-6"
+        >
+          <ArrowLeft className="w-4 h-4 mr-1" />
+          返回首页
+        </Link>
+
+        {/* News Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <span className="inline-block px-3 py-1 text-xs font-medium bg-lens-gold/10 text-lens-gold rounded-full">
+                {isAdminNews ? '财经' : news.category}
               </span>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">
-                {news.title}
-              </h1>
-              
-              {/* 操作按钮和时间信息 */}
-              <div className="bg-white rounded-xl p-4 border border-gray-200/50 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center space-x-6">
-                  <button className="flex items-center space-x-2 text-gray-600 hover:text-lens-gold transition-colors">
-                    <Bookmark className="w-4 h-4" />
-                    <span className="text-sm font-medium">追踪</span>
-                  </button>
-                  <button className="flex items-center space-x-2 text-gray-600 hover:text-lens-gold transition-colors">
-                    <Share2 className="w-4 h-4" />
-                    <span className="text-sm font-medium">分享</span>
-                  </button>
-                  <button className="flex items-center space-x-2 text-gray-600 hover:text-lens-gold transition-colors">
-                    <MessageSquare className="w-4 h-4" />
-                    <span className="text-sm font-medium">评论</span>
-                  </button>
-                </div>
-                <div className="flex items-center text-gray-500 text-sm">
-                  <Clock className="w-4 h-4 mr-2" />
-                  {formatDate(news.publishTime)}
-                </div>
+              <span className="text-sm text-gray-500 flex items-center">
+                <Clock className="w-4 h-4 mr-1" />
+                {new Date(news.createdAt || news.publishTime).toLocaleString('zh-CN')}
+              </span>
+            </div>
+            {isAdminNews && (
+              <a
+                href={news.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center text-sm text-lens-gold hover:text-amber-600"
+              >
+                <Link2 className="w-4 h-4 mr-1" />
+                原文链接
+              </a>
+            )}
+          </div>
+
+          <h1 className="text-3xl md:text-4xl font-bold text-lens-dark mb-4 leading-tight">
+            {news.title}
+          </h1>
+
+          {!isAdminNews && news.summary && (
+            <div className="bg-gray-50 border border-gray-200/50 rounded-lg p-4 mb-6">
+              <h2 className="text-lg font-semibold mb-2 flex items-center">
+                <Sparkles className="w-5 h-5 text-lens-gold mr-2" />
+                核心要点
+              </h2>
+              <ul className="space-y-2">
+                {news.summary.map((point: string, index: number) => (
+                  <li key={index} className="flex items-start">
+                    <span className="inline-block w-1.5 h-1.5 bg-lens-gold rounded-full mt-2 mr-2 flex-shrink-0" />
+                    <span className="text-gray-700">{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Content Sections */}
+        <div className="space-y-8">
+          {/* News Content */}
+          {!isAdminNews && news.content && (
+            <div className="bg-white rounded-xl p-6 border border-gray-200/50">
+              <div className="flex items-center space-x-2 mb-4">
+                <FileText className="w-5 h-5 text-lens-gold" />
+                <h2 className="text-lg font-bold">事件详情</h2>
               </div>
-              
-              <div className="flex items-center justify-end text-gray-500 text-sm mb-6">
-                <div className="flex items-center space-x-4">
-                  <span className="flex items-center">
-                    <span className="w-3 h-3 bg-lens-gold rounded-full mr-2"></span>
-                    {news.conceptDirections.length} 个视角
-                  </span>
-                  <span className="flex items-center">
-                    <span className="w-3 h-3 bg-lens-gold rounded-full mr-2"></span>
-                    {news.content.split('\n\n').length} 段内容
-                  </span>
-                </div>
+              <div className="prose prose-slate max-w-none">
+                {news.content.split('\n\n').map((paragraph: string, index: number) => (
+                  <p key={index} className="mb-4">{paragraph}</p>
+                ))}
               </div>
-              
-              {/* 核心要点 */}
-              <div className="bg-white rounded-xl p-6 border border-gray-200/50 mb-6">
-                <div className="flex items-center space-x-2 mb-4">
-                  <Sparkles className="w-5 h-5 text-lens-gold" />
-                  <h2 className="text-lg font-bold">核心要点</h2>
-                </div>
-                <div className="space-y-3">
-                  {news.summary.map((item, index) => (
-                    <p key={index} className="text-gray-700">{item}</p>
-                  ))}
-                </div>
-              </div>
-              
-              {/* 新闻内容 */}
-              <div className="bg-white rounded-xl p-6 border border-gray-200/50 mb-6">
-                <div className="flex items-center space-x-2 mb-4">
-                  <FileText className="w-5 h-5 text-lens-gold" />
-                  <h2 className="text-lg font-bold">事件详情</h2>
-                </div>
-                <div className="text-gray-700 space-y-4 leading-relaxed">
-                  {news.content.split('\n\n').map((paragraph, index) => (
-                    <p key={index}>{paragraph}</p>
-                  ))}
-                </div>
-              </div>
-              
-              {/* 展开的视角分析 */}
-              {isExpanded && selectedDirectionData && (
-                <div className="bg-white rounded-xl p-6 border border-gray-200/50 mb-6 animate-fade-in">
+            </div>
+          )}
+
+          {/* Admin News Analysis */}
+          {isAdminNews && news.selectedViewpoints && news.selectedViewpoints.length > 0 && (
+            <div className="space-y-6">
+              {news.selectedViewpoints.map((viewpoint: any) => (
+                <div key={viewpoint.id} className="bg-white rounded-xl p-6 border border-gray-200/50 animate-fade-in">
                   <div className="flex items-center space-x-2 mb-4">
                     <Lightbulb className="w-5 h-5 text-lens-gold" />
                     <h2 className="text-lg font-bold text-lens-gold">
-                      {selectedDirectionData.title}
+                      {viewpoint.title}
                     </h2>
                   </div>
-                  <p className="text-gray-600 mb-4">{selectedDirectionData.shortDescription}</p>
-                  <div className="space-y-4">
-                    <p>{selectedDirectionData.summary}</p>
-                    <p>{selectedDirectionData.fullExplanation}</p>
+                  <div className="mb-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">{viewpoint.insight}</p>
+                    <p className="text-gray-600">{viewpoint.content}</p>
                   </div>
-                  
-                  {/* 相关术语 */}
-                  {selectedDirectionData.relatedTerms.length > 0 && (
-                    <div className="mt-6">
-                      <h3 className="font-medium mb-2">相关术语</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedDirectionData.relatedTerms.map((term, index) => (
-                          <span key={index} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
-                            {term}
-                          </span>
-                        ))}
-                      </div>
+                  {viewpoint.anchors && viewpoint.anchors.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {viewpoint.anchors.map((anchor: string, index: number) => (
+                        <span key={index} className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
+                          {anchor}
+                        </span>
+                      ))}
                     </div>
                   )}
                 </div>
-              )}
+              ))}
             </div>
-          </div>
-          
-          {/* 右侧视角选择器 */}
-          <div className="lg:w-1/3">
-            <div className="sticky top-24">
-              
-              {/* 视角选择器 */}
-              <div className="bg-white rounded-xl p-6 border border-gray-200/50 mb-6">
-                <h2 className="text-xl font-bold mb-4 flex items-center space-x-2">
-                  <Sparkles className="w-5 h-5 text-lens-gold" />
-                  <span>视角探索</span>
-                </h2>
-                <p className="text-gray-600 mb-6 text-sm">
-                  从不同维度深入了解这个事件，获得启发
-                </p>
+          )}
 
-                {/* 视角列表 */}
-                <div className="space-y-3">
-                  {news.conceptDirections.map((direction) => (
-                    <button
-                      key={direction.id}
-                      onClick={() => handleDirectionClick(direction.id)}
-                      className={`w-full text-left p-4 rounded-lg border transition-all duration-200 ${
-                        selectedDirection === direction.id
-                          ? 'border-lens-gold bg-lens-gold/5'
-                          : 'border-gray-200 hover:border-lens-gold/50 hover:bg-gray-50'
-                      }`}
-                    >
-                      <h3 className="font-medium mb-1">{direction.title}</h3>
-                      <p className="text-sm text-gray-600">{direction.shortDescription}</p>
-                      {direction.relatedTerms.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {direction.relatedTerms.slice(0, 3).map((term, index) => (
-                            <span
-                              key={index}
-                              className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded"
-                            >
-                              {term}
-                            </span>
-                          ))}
-                          {direction.relatedTerms.length > 3 && (
-                            <span className="px-2 py-0.5 text-xs text-gray-400">
-                              +{direction.relatedTerms.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </button>
-                  ))}
+          {/* Default News Concept Directions */}
+          {!isAdminNews && news.conceptDirections && (
+            <div className="space-y-6">
+              {news.conceptDirections.map((direction: any) => (
+                <div key={direction.id} className="bg-white rounded-xl p-6 border border-gray-200/50 animate-fade-in">
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Lightbulb className="w-5 h-5 text-lens-gold" />
+                    <h2 className="text-lg font-bold text-lens-gold">
+                      {direction.title}
+                    </h2>
+                  </div>
+                  <div className="mb-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">{direction.shortDescription}</p>
+                    <p className="text-gray-600 mb-4">{direction.fullExplanation}</p>
+                  </div>
+                  {direction.relatedTerms && direction.relatedTerms.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {direction.relatedTerms.map((term: string, index: number) => (
+                        <span key={index} className="inline-block px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
+                          {term}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              {/* 相关术语云 */}
-              <div className="bg-white rounded-xl p-6 border border-gray-200/50">
-                <h3 className="text-lg font-bold mb-4">相关术语</h3>
-                <div className="flex flex-wrap gap-2">
-                  {Array.from(new Set(news.conceptDirections.flatMap(d => d.relatedTerms))).map((term, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1.5 text-sm bg-gray-50 text-gray-700 rounded-full border border-gray-100"
-                    >
-                      {term}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              ))}
             </div>
-          </div>
+          )}
         </div>
-      </main>
-    </div>
+
+        {/* Footer */}
+        <div className="mt-12 pt-6 border-t border-gray-200/50 flex items-center justify-between">
+          <div className="flex items-center text-sm text-gray-500">
+            <Tag className="w-4 h-4 mr-2" />
+            <span>Lens News</span>
+          </div>
+          <Link
+            href="/home"
+            className="text-sm font-medium text-lens-gold hover:text-amber-600"
+          >
+            返回首页 →
+          </Link>
+        </div>
+      </div>
+    </main>
   );
 }

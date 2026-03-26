@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Eye } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Eye, Sparkles, Search, Brain, Gauge, TrendingUp, Lightbulb } from 'lucide-react';
 import CategoryNav from '@/components/layout/CategoryNav';
 import NewsGrid from '@/components/home/NewsGrid';
+import AdminNewsCard from '@/components/home/AdminNewsCard';
 import { getAllNews } from '@/data/newsData';
 import { Category } from '@/types';
 import { useSearch } from '@/context/SearchContext';
@@ -11,7 +12,44 @@ import { useSearch } from '@/context/SearchContext';
 export default function HomePage() {
   const [activeCategory, setActiveCategory] = useState<Category>('全部');
   const { searchQuery, setSearchQuery } = useSearch();
+  const [adminNews, setAdminNews] = useState<any[]>([]);
   const allNews = useMemo(() => getAllNews(), []);
+
+  // 加载管理员添加的新闻
+  useEffect(() => {
+    const loadAdminNews = () => {
+      const savedRecords = localStorage.getItem('lens-news-admin-records');
+      if (savedRecords) {
+        const records = JSON.parse(savedRecords);
+        // 过滤出已完成、已保存且有选择维度的新闻
+        const completedNews = records
+          .filter((record: any) => 
+            record.status === 'completed' && record.isSaved && record.selectedViewpoints.length > 0
+          )
+          .sort((a: any, b: any) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+        setAdminNews(completedNews);
+      }
+    };
+
+    loadAdminNews();
+
+    // 监听 localStorage 变化
+    const handleStorageChange = () => {
+      loadAdminNews();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // 定期检查 localStorage（因为同一标签页的 storage 变化不会触发事件）
+    const interval = setInterval(loadAdminNews, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   const filteredNews = useMemo(() => {
     let result = allNews;
@@ -60,19 +98,33 @@ export default function HomePage() {
           
           <div className="animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
             <div className="flex items-center justify-center space-x-4">
-              <div className="flex -space-x-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="w-10 h-10 rounded-full border-2 border-white bg-gradient-to-br from-lens-gold to-amber-400 flex items-center justify-center text-white text-sm font-bold shadow-md"
-                  >
-                    {String.fromCharCode(64 + i)}
-                  </div>
-                ))}
+              <div className="flex -space-x-3">
+                {[
+                  { icon: Search, color: 'from-amber-200 to-amber-400' },
+                  { icon: Brain, color: 'from-amber-300 to-amber-500' },
+                  { icon: TrendingUp, color: 'from-amber-400 to-amber-600' },
+                  { icon: Lightbulb, color: 'from-amber-500 to-amber-700' }
+                ].map((item, i) => {
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={i}
+                      className={`w-12 h-12 rounded-full border-3 border-white bg-gradient-to-br ${item.color} flex items-center justify-center text-white shadow-lg`}
+                      style={{ zIndex: 4 - i }}
+                    >
+                      <Icon className="w-6 h-6" />
+                    </div>
+                  );
+                })}
               </div>
-              <p className="text-gray-500 text-sm">
-                已有 <span className="font-bold text-lens-gold">1,000+</span> 深度新闻
-              </p>
+              <div className="text-left ml-4">
+                <p className="text-gray-500 text-sm">
+                  已有 <span className="font-bold text-lens-gold">{filteredNews.length + adminNews.length}+</span> 深度新闻
+                </p>
+                <p className="text-gray-400 text-xs mt-1">
+                  多维视角 · 深度解析
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -100,9 +152,24 @@ export default function HomePage() {
               : (activeCategory === '全部' ? '推荐新闻' : `${activeCategory}资讯`)}
           </h1>
           <p className="text-gray-500">
-            共 {filteredNews.length} 条新闻{searchQuery.trim() ? '' : '，点击卡片探索深度分析'}
+            共 {filteredNews.length + ((activeCategory === '全部' || activeCategory === '财经') ? adminNews.length : 0)} 条新闻{searchQuery.trim() ? '' : '，点击卡片探索深度分析'}
           </p>
         </div>
+
+        {/* Admin News Section */}
+        {adminNews.length > 0 && (activeCategory === '全部' || activeCategory === '财经') && (
+          <div className="mb-8">
+            <div className="flex items-center mb-4">
+              <Sparkles className="w-5 h-5 text-lens-gold mr-2" />
+              <h2 className="text-xl font-bold text-lens-dark">智能分析新闻</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {adminNews.map((news) => (
+                <AdminNewsCard key={news.id} news={news} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* News Grid */}
         <NewsGrid news={filteredNews} />

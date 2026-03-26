@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, Menu, X, Bookmark, Search } from 'lucide-react';
+import { Eye, Menu, X, Bookmark, Search, Settings } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -70,6 +70,9 @@ export default function Navbar() {
             <NavLink href="/radar" active={isActive('/radar')} icon={<Bookmark className="w-4 h-4" />}>
               关注追踪
             </NavLink>
+            <NavLink href="/admin" active={isActive('/admin')} icon={<Settings className="w-4 h-4" />}>
+              管理
+            </NavLink>
           </div>
 
           {/* Mobile Menu Button */}
@@ -110,6 +113,9 @@ export default function Navbar() {
               </div>
               <MobileNavLink href="/radar" active={isActive('/radar')} icon={<Bookmark className="w-5 h-5" />}>
                 关注追踪
+              </MobileNavLink>
+              <MobileNavLink href="/admin" active={isActive('/admin')} icon={<Settings className="w-5 h-5" />}>
+                管理
               </MobileNavLink>
             </div>
           </div>
