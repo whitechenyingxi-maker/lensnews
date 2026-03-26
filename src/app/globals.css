@@ -106,3 +106,50 @@ html {
   background-color: rgba(212, 175, 55, 0.3);
   color: #1a202c;
 }
+
+/* Fade in up animation */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+/* Slow bounce animation */
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
+}
+
+/* Slow pulse animation */
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 6s ease-in-out infinite;
+}
